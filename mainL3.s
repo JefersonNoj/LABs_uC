@@ -3,11 +3,11 @@
 ; Autor:	Jeferson Noj
 ; Compilador:	pic-as (v2.30), MPLABX V5.40
 ;
-; Programa:	Contador en puerto A habilitado por TMR0
+; Programa:	Contador en PORTA con TMR0, contador hexadecimal en PORTC
 ; Hardware:	LEDs en PORTA, botones en PORTB y 7 seg en PORTC
 ;
 ; Creado: 09 feb, 2022
-; Última modificación:  feb, 2022
+; Última modificación: 12 feb, 2022
 
 PROCESSOR 16F887
 #include <xc.inc>
@@ -39,79 +39,79 @@ resetVec:
     GOTO main
 
 PSECT code, delta=2, abs
-ORG 100h		;posición para el código
+ORG 100h		; Posición para el código
 
 ;-------- CONFIGURACION --------
 main:
-    CALL    config_clk	    ; configuración del reloj
-    CALL    config_io	    ; configuración de las entradas
-    CALL    config_tmr0	    ; configuración del TMR0
-    CLRF    CONT	    ; Reinicio de contador
+    CALL    config_clk	    ; Configuración del reloj
+    CALL    config_io	    ; Configuración de las entradas
+    CALL    config_tmr0	    ; Configuración del TMR0
+    CLRF    CONT	    ; Reinicio de contador 7 seg
     BANKSEL PORTA
 
 loop:
-    BTFSC   T0IF	    ; evaluar bandera de overflow para TMR0
-    CALL    inc_portA
-    BTFSC   PORTB, 0
+    BTFSC   T0IF	    ; Evaluar bandera de overflow para TMR0
+    CALL    inc_portA	    
+    BTFSC   PORTB, 0	    ; Evaluar botón en bit 0 del PORTB
     CALL    inc_portC
-    BTFSC   PORTB, 1
+    BTFSC   PORTB, 1	    ; Evaluar botón en bit 1 del PORTB
     CALL    dec_portC
-    GOTO    loop
+    GOTO    loop	    ; Continuar en loop 
     
 ;------- SUBRUTINAS -------
 
 inc_portA:
-    CALL    reset_tmr0	  
-    INCF    PORTA 
-    MOVF    PORTA, 0
-    XORLW   10
-    BTFSC   STATUS, 2
-    CALL    inc_portD
+    CALL    reset_tmr0	    
+    INCF    PORTA	    ; Aumentar contador en PORTA
+    MOVF    PORTA, 0	    ; Mover valor de PORTA a W 
+    XORLW   10		    ; XOR entre W y el literal 10
+    BTFSC   STATUS, 2	    ; Evaluar bandera de ZERO
+    CALL    inc_portD	    ; Si la bandera es 1, llamar a subrutina indicada
     RETURN
 
 inc_portC:
-    BTFSC   PORTB, 0
+    BTFSC   PORTB, 0	    ; Antirebote 
     GOTO    $-1 
-    INCF    CONT
-    MOVF    CONT, W		; Valor de contador a W para buscarlo en la tabla
-    CALL    tabla		; Buscamos caracter de CONT en la tabla ASCII
-    MOVWF   PORTC		; Guardamos caracter de CONT en ASCII
-    BTFSC   CONT, 7		; Verificamos que el contador no sea mayor a 15
-    CLRF    CONT		; Si es mayor a 15, reiniciamos contador
+    INCF    CONT	    ; Aumentar CONT
+    MOVF    CONT, W	    ; Mover valor de CONT a W para buscarlo en la tabla
+    CALL    tabla	    ; Buscar valor de CONT en la tabla
+    MOVWF   PORTC	    ; Mover valor equivalente de CONT a PORTC
+    BTFSC   CONT, 7	    ; Verificar que CONT no sea mayor a 15
+    CLRF    CONT	    ; Si CONT > 15, reiniciar CONT
     RETURN
 
 dec_portC:
-    BTFSC   PORTB, 1
+    BTFSC   PORTB, 1	    ; Antirebote
     GOTO    $-1
-    DECF    CONT		; Incremento de contador
-    MOVF    CONT, W		; Valor de contador a W para buscarlo en la tabla
-    CALL    tabla		; Buscamos caracter de CONT en la tabla ASCII
-    MOVWF   PORTC		; Guardamos caracter de CONT en ASCII
-    BTFSC   CONT, 7		; Verificamos que el contador no sea mayor a 15
-    CLRF    CONT		; Si es mayor a 15, reiniciamos contador
+    DECF    CONT	    ; Diminuir CONT
+    MOVF    CONT, W	    ; Mover valor de CONT a W para buscarlo en la tabla
+    CALL    tabla	    ; Buscar valor de CONT en la tabla
+    MOVWF   PORTC	    ; Mover valor equivalente de CONT a PORTC
+    BTFSC   CONT, 7	    ; Verificar que CONT no sea mayor a 15
+    CLRF    CONT	    ; Si CONT > 15, reiniciar CONT
     RETURN
 
 inc_portD:
-    CLRF    PORTA
-    INCF    PORTD
-    BTFSC   PORTD, 4
-    CLRF    PORTD
-    MOVF    PORTD, 0
-    XORWF   CONT, 0
-    BTFSC   STATUS, 2
-    CALL    alarma_part1
+    CLRF    PORTA	    ; Reiniciar contador en PORTA
+    INCF    PORTD	    ; Aumentar contador en PORTD
+    BTFSC   PORTD, 4	    ; Verificar que PORTD no sea mayor a 15
+    CLRF    PORTD	    ; Si PORTD > 15, reiniciar contador en PORTD 
+    MOVF    PORTD, 0	    ; Mover valor de PORTD a W
+    XORWF   CONT, 0	    ; XOR entre W y valor de CONT
+    BTFSC   STATUS, 2	    ; Evaluar bandera de ZERO
+    CALL    alarma_part1    ; Si la bandera es 1, llamar a subrutina indicada
     RETURN
 
 alarma_part1: 
-    CLRF    PORTD
-    BTFSC   PORTE, 0
-    CALL    alarma_part2
-    BSF	    PORTE, 0
+    CLRF    PORTD	    ; Reiniciar contador en PORTD
+    BTFSC   PORTE, 0	    ; Evaluar estado del bit 0 del PORTE
+    CALL    alarma_part2    ; Llamar a subrutina indicada si el estado es 1
+    BSF	    PORTE, 0	    ; Encender LED en PORTE
     RETURN
 
 alarma_part2:
-    BCF	    PORTE, 0
-    GOTO    loop
+    BCF	    PORTE, 0	    ; Apagar LED en PORTE
+    GOTO    loop	    ; Ir a loop principal
 
 config_tmr0:
     BANKSEL OPTION_REG
@@ -143,41 +143,41 @@ config_io:
     CLRF    ANSEL	    ; I/O digitales
     CLRF    ANSELH
     BANKSEL TRISA
-    CLRF    TRISA
-    CLRF    TRISC
-    CLRF    TRISD   
-    BCF	    TRISE, 0
+    CLRF    TRISA	    ; PORTA como salidas
+    CLRF    TRISC	    ; PORTC como salidas
+    CLRF    TRISD	    ; PORTD como salidas
+    BCF	    TRISE, 0	    ; RE0 como salida
     BSF	    TRISB, 0	    ; RB0 como entrada
     BSF	    TRISB, 1	    ; RB1 como entrada
 
     BANKSEL PORTA
-    CLRF    PORTA	    ; Limpiar puerto A
-    CLRF    PORTC	    ; Limpiar puerto C
-    CLRF    PORTD
-    CLRF    PORTE
+    CLRF    PORTA	    ; Limpiar PORTA
+    CLRF    PORTC	    ; Limpiar PORTC
+    CLRF    PORTD	    ; Limpiar PORTD
+    CLRF    PORTE	    ; Limpiar PORTE
     RETURN
 
-ORG 200h  
+ORG 200h		    ; Establecer posición para la tabla
 tabla:
-    CLRF    PCLATH		; Limpiar registro PCLATH
-    BSF	    PCLATH, 1		; Posicionamos el PC 
-    ANDLW   0x0F
-    ADDWF   PCL			; 
-    RETLW   00111111B 
-    RETLW   00000110B
-    RETLW   01011011B
-    RETLW   01001111B
-    RETLW   01100110B
-    RETLW   01101101B
-    RETLW   01111101B
-    RETLW   00000111B
-    RETLW   01111111B
-    RETLW   01101111B
-    RETLW   01110111B
-    RETLW   01111100B
-    RETLW   00111001B
-    RETLW   01011110B
-    RETLW   01111001B
-    RETLW   01110001B
+    CLRF    PCLATH	    ; Limpiar registro PCLATH
+    BSF	    PCLATH, 1	    ; Posicionar PC 
+    ANDLW   0x0F	    ; AND entre W y literal 0x0F
+    ADDWF   PCL		    ; ADD entre W y PCL 
+    RETLW   00111111B	    ; 0	en 7 seg
+    RETLW   00000110B	    ; 1 en 7 seg
+    RETLW   01011011B	    ; 2 en 7 seg
+    RETLW   01001111B	    ; 3 en 7 seg
+    RETLW   01100110B	    ; 4 en 7 seg
+    RETLW   01101101B	    ; 5 en 7 seg
+    RETLW   01111101B	    ; 6 en 7 seg
+    RETLW   00000111B	    ; 7 en 7 seg
+    RETLW   01111111B	    ; 8 en 7 seg
+    RETLW   01101111B	    ; 9 en 7 seg
+    RETLW   01110111B	    ; 10 en 7 seg
+    RETLW   01111100B	    ; 11 en 7 seg
+    RETLW   00111001B	    ; 12 en 7 seg
+    RETLW   01011110B	    ; 13 en 7 seg
+    RETLW   01111001B	    ; 14 en 7 seg
+    RETLW   01110001B	    ; 15 en 7 seg
 
 END
