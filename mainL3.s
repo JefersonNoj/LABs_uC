@@ -95,8 +95,23 @@ inc_portD:
     CLRF    PORTA
     INCF    PORTD
     BTFSC   PORTD, 4
-    CLRF    PORTD  
+    CLRF    PORTD
+    MOVF    PORTD, 0
+    XORWF   CONT, 0
+    BTFSC   STATUS, 2
+    CALL    alarma_part1
     RETURN
+
+alarma_part1: 
+    CLRF    PORTD
+    BTFSC   PORTE, 0
+    CALL    alarma_part2
+    BSF	    PORTE, 0
+    RETURN
+
+alarma_part2:
+    BCF	    PORTE, 0
+    GOTO    loop
 
 config_tmr0:
     BANKSEL OPTION_REG
@@ -131,6 +146,7 @@ config_io:
     CLRF    TRISA
     CLRF    TRISC
     CLRF    TRISD   
+    BCF	    TRISE, 0
     BSF	    TRISB, 0	    ; RB0 como entrada
     BSF	    TRISB, 1	    ; RB1 como entrada
 
@@ -138,6 +154,7 @@ config_io:
     CLRF    PORTA	    ; Limpiar puerto A
     CLRF    PORTC	    ; Limpiar puerto C
     CLRF    PORTD
+    CLRF    PORTE
     RETURN
 
 ORG 200h  
