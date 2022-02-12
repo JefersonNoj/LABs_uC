@@ -43,9 +43,9 @@ ORG 100h		;posición para el código
 
 ;-------- CONFIGURACION --------
 main:
-    CALL    config_clk	    ;configuración del reloj
-    CALL    config_io	    ;configuración de las entradas
-    CALL    config_tmr0	    ;configuración del TMR0
+    CALL    config_clk	    ; configuración del reloj
+    CALL    config_io	    ; configuración de las entradas
+    CALL    config_tmr0	    ; configuración del TMR0
     CLRF    CONT	    ; Reinicio de contador
     BANKSEL PORTA
 
@@ -63,8 +63,10 @@ loop:
 inc_portA:
     CALL    reset_tmr0	  
     INCF    PORTA 
-    BTFSC   PORTA, 4
-    CLRF    PORTA
+    MOVF    PORTA, 0
+    XORLW   10
+    BTFSC   STATUS, 2
+    CALL    inc_portD
     RETURN
 
 inc_portC:
@@ -87,6 +89,13 @@ dec_portC:
     MOVWF   PORTC		; Guardamos caracter de CONT en ASCII
     BTFSC   CONT, 7		; Verificamos que el contador no sea mayor a 15
     CLRF    CONT		; Si es mayor a 15, reiniciamos contador
+    RETURN
+
+inc_portD:
+    CLRF    PORTA
+    INCF    PORTD
+    BTFSC   PORTD, 4
+    CLRF    PORTD  
     RETURN
 
 config_tmr0:
@@ -121,13 +130,14 @@ config_io:
     BANKSEL TRISA
     CLRF    TRISA
     CLRF    TRISC
-
+    CLRF    TRISD   
     BSF	    TRISB, 0	    ; RB0 como entrada
     BSF	    TRISB, 1	    ; RB1 como entrada
-    
+
     BANKSEL PORTA
     CLRF    PORTA	    ; Limpiar puerto A
     CLRF    PORTC	    ; Limpiar puerto C
+    CLRF    PORTD
     RETURN
 
 ORG 200h  
