@@ -49,12 +49,14 @@ main:
     CLRF    CONT	    ; Reinicio de contador 7 seg
     BANKSEL PORTA
 
+;------- LOOP PRINCIPAL --------
+
 loop:
     BTFSC   T0IF	    ; Evaluar bandera de overflow para TMR0
     CALL    inc_portA	    
-    BTFSC   PORTB, 0	    ; Evaluar botón en bit 0 del PORTB
+    BTFSC   PORTB, 0	    ; Evaluar botón en pin 0 del PORTB
     CALL    inc_portC
-    BTFSC   PORTB, 1	    ; Evaluar botón en bit 1 del PORTB
+    BTFSC   PORTB, 1	    ; Evaluar botón en pin 1 del PORTB
     CALL    dec_portC
     GOTO    loop	    ; Continuar en loop 
     
@@ -125,8 +127,8 @@ config_tmr0:
     RETURN
 
 reset_tmr0:
-    MOVLW   231
-    MOVWF   TMR0
+    MOVLW   231		    ; Mover literal a W
+    MOVWF   TMR0	    ; Mover W a registro TMR0
     BCF	    T0IF	    ; Apagar bandera de overflow para TMR0
     RETURN
 
